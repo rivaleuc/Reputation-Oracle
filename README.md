@@ -53,10 +53,23 @@ GitHub handle `rivaleuc` → score **42/100**, reasoning:
 > "The developer shows consistent activity and a healthy follower count for a four year old account, though their repositories lack community engagement such as stars and forks."
 
 
+## Web app
+
+A Next.js + Tailwind frontend lives in [`web/`](web/) and uses `genlayer-js` to talk to the deployed contract.
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Then open http://localhost:3000, connect MetaMask, link a GitHub handle, request your score.
+
 ## Roadmap
 
 - [x] V1: GitHub signal
+- [x] Frontend (Next.js + genlayer-js)
 - [ ] V2: Twitter/X signal (multi source scoring)
 - [ ] V3: On chain history signal
-- [ ] Frontend (Next.js + genlayer-js)
+- [ ] Public leaderboard
 - [ ] Production deploy on Testnet Bradbury
