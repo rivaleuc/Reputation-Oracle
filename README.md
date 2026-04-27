@@ -17,7 +17,7 @@ Built on [GenLayer](https://genlayer.com)  uses `gl.nondet.web.request` to fetch
 
 ## Why GenLayer
 
-A pure-Solidity version of this is impossible fetching arbitrary web data and applying qualitative judgment requires either a centralized oracle or off-chain trust. GenLayer's intelligent contracts handle both natively.
+A pure-Solidity version of this is impossible fetching arbitrary web data and applying qualitative judgment requires either a centralized oracle or off chain trust. GenLayer's intelligent contracts handle both natively.
 
 ## Use cases
 
