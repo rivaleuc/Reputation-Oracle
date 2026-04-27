@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Reputation Oracle — GenLayer",
+  title: "Reputation Oracle GenLayer",
   description:
     "Trustless on-chain dev reputation scored by AI consensus on GenLayer.",
 };

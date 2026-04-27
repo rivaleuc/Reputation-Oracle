@@ -4,13 +4,19 @@ import { createClient } from "genlayer-js";
 import { studionet } from "genlayer-js/chains";
 
 export const CONTRACT_ADDRESS =
-  "0x84d17ce5Db73728a372e4f70f3c9DD641fE135f0" as const;
+  "0xf47536dB6b715C0F002C48680449029fCc5067b5" as const;
 
 export type Score = {
   exists: boolean;
   value?: number;
-  github_handle?: string;
+  sources_used?: string;
   reasoning?: string;
+};
+
+export type Identity = {
+  linked: boolean;
+  github_handle?: string;
+  twitter_handle?: string;
 };
 
 declare global {
@@ -36,12 +42,11 @@ export function makeClient(account: `0x${string}`) {
 
 export async function readMyScore(account: `0x${string}`): Promise<Score> {
   const client = makeClient(account);
-  const res = (await client.readContract({
+  return (await client.readContract({
     address: CONTRACT_ADDRESS,
     functionName: "read_my_score",
     args: [],
   })) as Score;
-  return res;
 }
 
 export async function readScore(
@@ -49,44 +54,49 @@ export async function readScore(
   walletHex: string,
 ): Promise<Score> {
   const client = makeClient(account);
-  const res = (await client.readContract({
+  return (await client.readContract({
     address: CONTRACT_ADDRESS,
     functionName: "read_score",
     args: [walletHex.toLowerCase()],
   })) as Score;
-  return res;
 }
 
-export async function readMyIdentity(
-  account: `0x${string}`,
-): Promise<{ linked: boolean; github_handle?: string }> {
+export async function readMyIdentity(account: `0x${string}`): Promise<Identity> {
   const client = makeClient(account);
-  const res = (await client.readContract({
+  return (await client.readContract({
     address: CONTRACT_ADDRESS,
     functionName: "my_identity",
     args: [],
-  })) as { linked: boolean; github_handle?: string };
-  return res;
+  })) as Identity;
 }
 
-export async function linkIdentity(
+export async function readTotalScored(account: `0x${string}`): Promise<number> {
+  const client = makeClient(account);
+  const n = (await client.readContract({
+    address: CONTRACT_ADDRESS,
+    functionName: "total_scored",
+    args: [],
+  })) as number | bigint;
+  return Number(n);
+}
+
+export async function linkSocials(
   account: `0x${string}`,
   githubHandle: string,
-): Promise<`0x${string}`> {
+  twitterHandle: string,
+): Promise<string> {
   const client = makeClient(account);
   await client.connect("studionet");
   const hash = (await client.writeContract({
     address: CONTRACT_ADDRESS,
-    functionName: "link_identity",
-    args: [githubHandle],
+    functionName: "link_socials",
+    args: [githubHandle, twitterHandle],
     value: BigInt(0),
-  })) as `0x${string}`;
+  })) as string;
   return hash;
 }
 
-export async function requestScore(
-  account: `0x${string}`,
-): Promise<`0x${string}`> {
+export async function requestScore(account: `0x${string}`): Promise<string> {
   const client = makeClient(account);
   await client.connect("studionet");
   const hash = (await client.writeContract({
@@ -94,15 +104,20 @@ export async function requestScore(
     functionName: "request_score",
     args: [],
     value: BigInt(0),
-  })) as `0x${string}`;
+  })) as string;
   return hash;
 }
 
 export async function waitForReceipt(
   account: `0x${string}`,
   hash: string,
+  opts: { interval?: number; retries?: number } = {},
 ) {
   const client = makeClient(account);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return await client.waitForTransactionReceipt({ hash } as any);
+  return await client.waitForTransactionReceipt({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    hash: hash as any,
+    interval: opts.interval ?? 3000,
+    retries: opts.retries ?? 80, // ~4 minutes — LLM + multi-validator consensus is slow
+  });
 }
