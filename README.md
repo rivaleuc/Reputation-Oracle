@@ -13,7 +13,7 @@ Built on [GenLayer](https://genlayer.com)  uses `gl.nondet.web.request` to fetch
 
 1. User links their wallet to a GitHub handle via `link_identity(handle)`
 2. User calls `request_score()`  contract fetches GitHub user + recent repos data, an LLM evaluates the developer profile, validators reach consensus on a 0-100 score
-3. Anyone can read scores via `read_score(wallet_hex)` — free, instant, no recompute
+3. Anyone can read scores via `read_score(wallet_hex)` free, instant, no recompute
 
 ## Why GenLayer
 
