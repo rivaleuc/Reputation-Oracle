@@ -47,7 +47,7 @@ The LLM evaluates GitHub data on:
 - Followers/following ratio (sybil avoidance)
 - Bio completeness
 
-## Verified end-to-end
+## Verified end to end
 
 GitHub handle `rivaleuc` → score **42/100**, reasoning:
 > "The developer shows consistent activity and a healthy follower count for a four year old account, though their repositories lack community engagement such as stars and forks."
