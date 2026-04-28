@@ -19,17 +19,66 @@ export type Identity = {
   twitter_handle?: string;
 };
 
+type InjectedProvider = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+  isMetaMask?: boolean;
+  isCoinbaseWallet?: boolean;
+  isBraveWallet?: boolean;
+  isRabby?: boolean;
+  isPhantom?: boolean;
+  isOkxWallet?: boolean;
+  isTrust?: boolean;
+  isTrustWallet?: boolean;
+  isFrame?: boolean;
+  isTokenPocket?: boolean;
+  isExodus?: boolean;
+  providers?: InjectedProvider[];
+};
+
 declare global {
   interface Window {
-    ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> };
+    ethereum?: InjectedProvider;
   }
 }
 
-export async function connectWallet(): Promise<`0x${string}`> {
-  if (typeof window === "undefined" || !window.ethereum) {
-    throw new Error("MetaMask not detected. Install MetaMask to continue.");
+function isOnlyMetaMask(p: InjectedProvider): boolean {
+  if (!p.isMetaMask) return false;
+  // Other wallets often impersonate MetaMask by setting isMetaMask=true.
+  // Reject if any other wallet flag is also set.
+  return !(
+    p.isCoinbaseWallet ||
+    p.isBraveWallet ||
+    p.isRabby ||
+    p.isPhantom ||
+    p.isOkxWallet ||
+    p.isTrust ||
+    p.isTrustWallet ||
+    p.isFrame ||
+    p.isTokenPocket ||
+    p.isExodus
+  );
+}
+
+function pickMetaMaskProvider(): InjectedProvider | null {
+  if (typeof window === "undefined") return null;
+  const eth = window.ethereum;
+  if (!eth) return null;
+  // Some setups stack providers: try each.
+  if (Array.isArray(eth.providers)) {
+    const mm = eth.providers.find(isOnlyMetaMask);
+    if (mm) return mm;
   }
-  const accounts = (await window.ethereum.request({
+  if (isOnlyMetaMask(eth)) return eth;
+  return null;
+}
+
+const NOT_METAMASK_MSG =
+  "This dApp requires MetaMask. GenLayer needs the MetaMask Snap to sign transactions, which is not supported by other wallets (Rabby, Coinbase, Trust, OKX, Phantom, Brave, etc.). Install MetaMask from https://metamask.io to continue.";
+
+export async function connectWallet(): Promise<`0x${string}`> {
+  const provider = pickMetaMaskProvider();
+  if (!provider) throw new Error(NOT_METAMASK_MSG);
+  const accounts = (await provider.request({
     method: "eth_requestAccounts",
   })) as string[];
   if (!accounts?.length) throw new Error("No accounts returned");

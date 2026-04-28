@@ -165,9 +165,10 @@ export default function Oracle() {
           <Card>
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="font-semibold">Connect your wallet to begin</h2>
+                <h2 className="font-semibold">Connect MetaMask to begin</h2>
                 <p className="text-sm text-zinc-400 mt-1">
-                  Your wallet is your identity required to compute and own a score.
+                  GenLayer requires the MetaMask Snap to sign transactions, so other wallets
+                  (Rabby, Coinbase, Trust, OKX, Phantom, Brave) are not supported.
                 </p>
               </div>
               <button
