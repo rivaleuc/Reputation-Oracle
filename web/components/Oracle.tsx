@@ -132,7 +132,7 @@ export default function Oracle() {
         <header className="space-y-4">
           <div className="inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-xs font-medium text-orange-300">
             <span className="h-1.5 w-1.5 rounded-full bg-orange-400 animate-pulse" />
-            Live on GenLayer Studionet
+            Live on GenLayer Bradbury Testnet
           </div>
           <h1 className="text-5xl font-bold tracking-tight bg-gradient-to-br from-zinc-50 to-zinc-400 bg-clip-text text-transparent">
             Reputation Oracle
@@ -146,7 +146,7 @@ export default function Oracle() {
               className="font-mono hover:text-zinc-300 transition"
               target="_blank"
               rel="noreferrer"
-              href={`https://explorer-studio.genlayer.com/address/${CONTRACT_ADDRESS}`}
+              href={`https://explorer-bradbury.genlayer.com/address/${CONTRACT_ADDRESS}`}
             >
               Contract: {short(CONTRACT_ADDRESS)}
             </a>
@@ -268,7 +268,7 @@ export default function Oracle() {
               className="hover:text-zinc-400"
               target="_blank"
               rel="noreferrer"
-              href={`https://explorer-studio.genlayer.com/address/${CONTRACT_ADDRESS}`}
+              href={`https://explorer-bradbury.genlayer.com/address/${CONTRACT_ADDRESS}`}
             >
               {short(CONTRACT_ADDRESS)}
             </a>

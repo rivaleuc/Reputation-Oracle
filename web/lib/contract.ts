@@ -1,10 +1,10 @@
 "use client";
 
 import { createClient } from "genlayer-js";
-import { studionet } from "genlayer-js/chains";
+import { testnetBradbury } from "genlayer-js/chains";
 
 export const CONTRACT_ADDRESS =
-  "0xf47536dB6b715C0F002C48680449029fCc5067b5" as const;
+  "0x524A2e302F2264939B3C56Ec50d12B29c60984F5" as const;
 
 export type Score = {
   exists: boolean;
@@ -86,7 +86,7 @@ export async function connectWallet(): Promise<`0x${string}`> {
 }
 
 export function makeClient(account: `0x${string}`) {
-  return createClient({ chain: studionet, account });
+  return createClient({ chain: testnetBradbury, account });
 }
 
 export async function readMyScore(account: `0x${string}`): Promise<Score> {
@@ -135,7 +135,7 @@ export async function linkSocials(
   twitterHandle: string,
 ): Promise<string> {
   const client = makeClient(account);
-  await client.connect("studionet");
+  await client.connect("testnetBradbury");
   const hash = (await client.writeContract({
     address: CONTRACT_ADDRESS,
     functionName: "link_socials",
@@ -147,7 +147,7 @@ export async function linkSocials(
 
 export async function requestScore(account: `0x${string}`): Promise<string> {
   const client = makeClient(account);
-  await client.connect("studionet");
+  await client.connect("testnetBradbury");
   const hash = (await client.writeContract({
     address: CONTRACT_ADDRESS,
     functionName: "request_score",
