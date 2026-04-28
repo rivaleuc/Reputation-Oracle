@@ -73,7 +73,39 @@ function pickMetaMaskProvider(): InjectedProvider | null {
 }
 
 const NOT_METAMASK_MSG =
-  "This dApp requires MetaMask. GenLayer needs the MetaMask Snap to sign transactions, which is not supported by other wallets (Rabby, Coinbase, Trust, OKX, Phantom, Brave, etc.). Install MetaMask from https://metamask.io to continue.";
+  "This dApp requires MetaMask. Other wallets (Rabby, Coinbase, Trust, OKX, Phantom, Brave) can connect but cannot sign GenLayer transactions. Install MetaMask from https://metamask.io to continue.";
+
+const BRADBURY_CHAIN_ID_HEX = `0x${(4221).toString(16)}`;
+
+async function ensureBradburyChain(provider: InjectedProvider) {
+  try {
+    const current = await provider.request({ method: "eth_chainId" });
+    if (current === BRADBURY_CHAIN_ID_HEX) return;
+    await provider.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: BRADBURY_CHAIN_ID_HEX }],
+    });
+  } catch (err: unknown) {
+    // Chain not added — request to add it.
+    const code = (err as { code?: number })?.code;
+    if (code === 4902 || code === -32603) {
+      await provider.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: BRADBURY_CHAIN_ID_HEX,
+            chainName: "GenLayer Bradbury Testnet",
+            rpcUrls: ["https://rpc-bradbury.genlayer.com"],
+            nativeCurrency: { name: "GEN Token", symbol: "GEN", decimals: 18 },
+            blockExplorerUrls: ["https://explorer-bradbury.genlayer.com/"],
+          },
+        ],
+      });
+    } else {
+      throw err;
+    }
+  }
+}
 
 export async function connectWallet(): Promise<`0x${string}`> {
   const provider = pickMetaMaskProvider();
@@ -82,6 +114,7 @@ export async function connectWallet(): Promise<`0x${string}`> {
     method: "eth_requestAccounts",
   })) as string[];
   if (!accounts?.length) throw new Error("No accounts returned");
+  await ensureBradburyChain(provider);
   return accounts[0] as `0x${string}`;
 }
 
@@ -135,7 +168,6 @@ export async function linkSocials(
   twitterHandle: string,
 ): Promise<string> {
   const client = makeClient(account);
-  await client.connect("testnetBradbury");
   const hash = (await client.writeContract({
     address: CONTRACT_ADDRESS,
     functionName: "link_socials",
@@ -147,7 +179,6 @@ export async function linkSocials(
 
 export async function requestScore(account: `0x${string}`): Promise<string> {
   const client = makeClient(account);
-  await client.connect("testnetBradbury");
   const hash = (await client.writeContract({
     address: CONTRACT_ADDRESS,
     functionName: "request_score",
