@@ -65,11 +65,3 @@ npm run dev
 
 Then open http://localhost:3000, connect MetaMask, link a GitHub handle, request your score.
 
-## Roadmap
-
-- [x] V1: GitHub signal
-- [x] Frontend (Next.js + genlayer-js)
-- [ ] V2: Twitter/X signal (multi source scoring)
-- [ ] V3: On chain history signal
-- [ ] Public leaderboard
-- [ ] Production deploy on Testnet Bradbury
