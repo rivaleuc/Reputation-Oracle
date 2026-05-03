@@ -6,8 +6,8 @@ Built on [GenLayer](https://genlayer.com)  uses `gl.nondet.web.request` to fetch
 
 ## Live Deployment
 
-- **Network:** GenLayer Studionet
-- **Contract:** [`0x84d17ce5Db73728a372e4f70f3c9DD641fE135f0`](https://explorer-studio.genlayer.com/address/0x84d17ce5Db73728a372e4f70f3c9DD641fE135f0)
+- **Network:** GenLayer Bradbury
+- **Contract:** [`0x524A2e302F2264939B3C56Ec50d12B29c60984F5`]([https://explorer-bradbury.genlayer.com/tx/0x8f1bc5bc09568d2d3ea10b691ea1789baae1b4fecf051bcf72762e468ea323bc)
 
 ## How it works
 
