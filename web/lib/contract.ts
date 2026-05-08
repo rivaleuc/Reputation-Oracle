@@ -25,16 +25,6 @@ export type Identity = {
 type InjectedProvider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
   isMetaMask?: boolean;
-  isCoinbaseWallet?: boolean;
-  isBraveWallet?: boolean;
-  isRabby?: boolean;
-  isPhantom?: boolean;
-  isOkxWallet?: boolean;
-  isTrust?: boolean;
-  isTrustWallet?: boolean;
-  isFrame?: boolean;
-  isTokenPocket?: boolean;
-  isExodus?: boolean;
   providers?: InjectedProvider[];
 };
 
@@ -46,36 +36,23 @@ declare global {
 
 const BRADBURY_CHAIN_ID_HEX = `0x${(4221).toString(16)}`;
 
-function isOnlyMetaMask(p: InjectedProvider): boolean {
-  if (!p.isMetaMask) return false;
-  return !(
-    p.isCoinbaseWallet ||
-    p.isBraveWallet ||
-    p.isRabby ||
-    p.isPhantom ||
-    p.isOkxWallet ||
-    p.isTrust ||
-    p.isTrustWallet ||
-    p.isFrame ||
-    p.isTokenPocket ||
-    p.isExodus
-  );
-}
-
-function pickMetaMaskProvider(): InjectedProvider | null {
+function pickProvider(): InjectedProvider | null {
   if (typeof window === "undefined") return null;
   const eth = window.ethereum;
   if (!eth) return null;
-  if (Array.isArray(eth.providers)) {
-    const mm = eth.providers.find(isOnlyMetaMask);
+  // If multiple wallets are stacked, prefer MetaMask if present, otherwise
+  // just take the first injected provider. Bradbury accepts standard EVM
+  // signing, so any injected wallet works.
+  if (Array.isArray(eth.providers) && eth.providers.length) {
+    const mm = eth.providers.find((p) => p.isMetaMask);
     if (mm) return mm;
+    return eth.providers[0];
   }
-  if (isOnlyMetaMask(eth)) return eth;
-  return null;
+  return eth;
 }
 
-const NOT_METAMASK_MSG =
-  "This dApp requires MetaMask. Other wallets (Rabby, Coinbase, Trust, OKX, Phantom, Brave) cannot sign GenLayer transactions. Install MetaMask from https://metamask.io to continue.";
+const NO_WALLET_MSG =
+  "No EVM wallet detected. Install MetaMask, Rabby, Coinbase Wallet, Brave Wallet, or any injected wallet to continue.";
 
 async function ensureBradburyChain(provider: InjectedProvider) {
   const current = await provider.request({ method: "eth_chainId" });
@@ -107,8 +84,8 @@ async function ensureBradburyChain(provider: InjectedProvider) {
 }
 
 export async function connectWallet(): Promise<`0x${string}`> {
-  const provider = pickMetaMaskProvider();
-  if (!provider) throw new Error(NOT_METAMASK_MSG);
+  const provider = pickProvider();
+  if (!provider) throw new Error(NO_WALLET_MSG);
   const accounts = (await provider.request({
     method: "eth_requestAccounts",
   })) as string[];
@@ -118,8 +95,8 @@ export async function connectWallet(): Promise<`0x${string}`> {
 }
 
 function makeClient(account: `0x${string}`) {
-  const provider = pickMetaMaskProvider();
-  if (!provider) throw new Error(NOT_METAMASK_MSG);
+  const provider = pickProvider();
+  if (!provider) throw new Error(NO_WALLET_MSG);
   // Pass MetaMask as the provider — genlayer-js will use it for signing
   // without invoking client.connect() (which would otherwise try to install
   // the GenLayer Snap).

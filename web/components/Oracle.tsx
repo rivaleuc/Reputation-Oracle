@@ -169,10 +169,10 @@ export default function Oracle() {
           <Card>
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="font-semibold">Connect MetaMask to begin</h2>
+                <h2 className="font-semibold">Connect your wallet to begin</h2>
                 <p className="text-sm text-zinc-400 mt-1">
-                  Bradbury uses standard EVM signing — no GenLayer Snap install required.
-                  Need testnet GEN? Get some from the{" "}
+                  Works with MetaMask, Rabby, Coinbase Wallet, Brave Wallet, and any injected EVM wallet —
+                  no GenLayer Snap required. Need testnet GEN? Get some from the{" "}
                   <a className="underline" target="_blank" rel="noreferrer" href={FAUCET_URL}>faucet</a>.
                 </p>
               </div>
@@ -180,7 +180,7 @@ export default function Oracle() {
                 onClick={handleConnect}
                 className="shrink-0 rounded-md bg-orange-500 hover:bg-orange-400 px-5 py-2.5 text-sm font-semibold text-black transition"
               >
-                Connect MetaMask
+                Connect Wallet
               </button>
             </div>
           </Card>
