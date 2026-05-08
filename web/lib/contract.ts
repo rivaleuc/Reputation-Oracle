@@ -6,6 +6,9 @@ import { testnetBradbury } from "genlayer-js/chains";
 export const CONTRACT_ADDRESS =
   "0x524A2e302F2264939B3C56Ec50d12B29c60984F5" as const;
 
+export const FAUCET_URL = "https://testnet-faucet.genlayer.foundation/";
+export const EXPLORER_URL = "https://explorer-bradbury.genlayer.com";
+
 export type Score = {
   exists: boolean;
   value?: number;
@@ -41,10 +44,10 @@ declare global {
   }
 }
 
+const BRADBURY_CHAIN_ID_HEX = `0x${(4221).toString(16)}`;
+
 function isOnlyMetaMask(p: InjectedProvider): boolean {
   if (!p.isMetaMask) return false;
-  // Other wallets often impersonate MetaMask by setting isMetaMask=true.
-  // Reject if any other wallet flag is also set.
   return !(
     p.isCoinbaseWallet ||
     p.isBraveWallet ||
@@ -63,7 +66,6 @@ function pickMetaMaskProvider(): InjectedProvider | null {
   if (typeof window === "undefined") return null;
   const eth = window.ethereum;
   if (!eth) return null;
-  // Some setups stack providers: try each.
   if (Array.isArray(eth.providers)) {
     const mm = eth.providers.find(isOnlyMetaMask);
     if (mm) return mm;
@@ -73,20 +75,17 @@ function pickMetaMaskProvider(): InjectedProvider | null {
 }
 
 const NOT_METAMASK_MSG =
-  "This dApp requires MetaMask. Other wallets (Rabby, Coinbase, Trust, OKX, Phantom, Brave) can connect but cannot sign GenLayer transactions. Install MetaMask from https://metamask.io to continue.";
-
-const BRADBURY_CHAIN_ID_HEX = `0x${(4221).toString(16)}`;
+  "This dApp requires MetaMask. Other wallets (Rabby, Coinbase, Trust, OKX, Phantom, Brave) cannot sign GenLayer transactions. Install MetaMask from https://metamask.io to continue.";
 
 async function ensureBradburyChain(provider: InjectedProvider) {
+  const current = await provider.request({ method: "eth_chainId" });
+  if (current === BRADBURY_CHAIN_ID_HEX) return;
   try {
-    const current = await provider.request({ method: "eth_chainId" });
-    if (current === BRADBURY_CHAIN_ID_HEX) return;
     await provider.request({
       method: "wallet_switchEthereumChain",
       params: [{ chainId: BRADBURY_CHAIN_ID_HEX }],
     });
   } catch (err: unknown) {
-    // Chain not added — request to add it.
     const code = (err as { code?: number })?.code;
     if (code === 4902 || code === -32603) {
       await provider.request({
@@ -118,13 +117,23 @@ export async function connectWallet(): Promise<`0x${string}`> {
   return accounts[0] as `0x${string}`;
 }
 
-export function makeClient(account: `0x${string}`) {
-  return createClient({ chain: testnetBradbury, account });
+function makeClient(account: `0x${string}`) {
+  const provider = pickMetaMaskProvider();
+  if (!provider) throw new Error(NOT_METAMASK_MSG);
+  // Pass MetaMask as the provider — genlayer-js will use it for signing
+  // without invoking client.connect() (which would otherwise try to install
+  // the GenLayer Snap).
+  return createClient({
+    chain: testnetBradbury,
+    account,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    provider: provider as any,
+  });
 }
 
+// ---------- Read methods ----------
 export async function readMyScore(account: `0x${string}`): Promise<Score> {
-  const client = makeClient(account);
-  return (await client.readContract({
+  return (await makeClient(account).readContract({
     address: CONTRACT_ADDRESS,
     functionName: "read_my_score",
     args: [],
@@ -135,8 +144,7 @@ export async function readScore(
   account: `0x${string}`,
   walletHex: string,
 ): Promise<Score> {
-  const client = makeClient(account);
-  return (await client.readContract({
+  return (await makeClient(account).readContract({
     address: CONTRACT_ADDRESS,
     functionName: "read_score",
     args: [walletHex.toLowerCase()],
@@ -144,8 +152,7 @@ export async function readScore(
 }
 
 export async function readMyIdentity(account: `0x${string}`): Promise<Identity> {
-  const client = makeClient(account);
-  return (await client.readContract({
+  return (await makeClient(account).readContract({
     address: CONTRACT_ADDRESS,
     functionName: "my_identity",
     args: [],
@@ -153,8 +160,7 @@ export async function readMyIdentity(account: `0x${string}`): Promise<Identity> 
 }
 
 export async function readTotalScored(account: `0x${string}`): Promise<number> {
-  const client = makeClient(account);
-  const n = (await client.readContract({
+  const n = (await makeClient(account).readContract({
     address: CONTRACT_ADDRESS,
     functionName: "total_scored",
     args: [],
@@ -162,13 +168,13 @@ export async function readTotalScored(account: `0x${string}`): Promise<number> {
   return Number(n);
 }
 
+// ---------- Write methods ----------
 export async function linkSocials(
   account: `0x${string}`,
   githubHandle: string,
   twitterHandle: string,
 ): Promise<string> {
-  const client = makeClient(account);
-  const hash = (await client.writeContract({
+  const hash = (await makeClient(account).writeContract({
     address: CONTRACT_ADDRESS,
     functionName: "link_socials",
     args: [githubHandle, twitterHandle],
@@ -178,8 +184,7 @@ export async function linkSocials(
 }
 
 export async function requestScore(account: `0x${string}`): Promise<string> {
-  const client = makeClient(account);
-  const hash = (await client.writeContract({
+  const hash = (await makeClient(account).writeContract({
     address: CONTRACT_ADDRESS,
     functionName: "request_score",
     args: [],
@@ -193,11 +198,10 @@ export async function waitForReceipt(
   hash: string,
   opts: { interval?: number; retries?: number } = {},
 ) {
-  const client = makeClient(account);
-  return await client.waitForTransactionReceipt({
+  return await makeClient(account).waitForTransactionReceipt({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     hash: hash as any,
     interval: opts.interval ?? 3000,
-    retries: opts.retries ?? 80, // ~4 minutes — LLM + multi-validator consensus is slow
+    retries: opts.retries ?? 80,
   });
 }

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import {
   CONTRACT_ADDRESS,
+  EXPLORER_URL,
+  FAUCET_URL,
   Identity,
   Score,
   connectWallet,
@@ -50,17 +52,19 @@ export default function Oracle() {
     if (!account) return;
     (async () => {
       try {
-        const [id, total] = await Promise.all([
-          readMyIdentity(account),
-          readTotalScored(account).catch(() => 0),
-        ]);
-        setIdentity(id);
+        const total = await readTotalScored(account).catch(() => 0);
         setTotalScored(total);
-        if (id.github_handle) setGithubInput(id.github_handle);
-        if (id.twitter_handle) setTwitterInput(id.twitter_handle);
-        if (id.linked) {
-          const s = await readMyScore(account).catch(() => null);
-          if (s) setMyScore(s);
+        try {
+          const id = await readMyIdentity(account);
+          setIdentity(id);
+          if (id.github_handle) setGithubInput(id.github_handle);
+          if (id.twitter_handle) setTwitterInput(id.twitter_handle);
+          if (id.linked) {
+            const s = await readMyScore(account).catch(() => null);
+            if (s) setMyScore(s);
+          }
+        } catch {
+          // contract may not be queryable yet
         }
       } catch (e) {
         setStatus({ kind: "error", msg: msg(e) });
@@ -93,7 +97,7 @@ export default function Oracle() {
 
       setStatus({
         kind: "busy",
-        msg: "Computing reputation (LLM + web fetch + validator consensus, 30s–2min)…",
+        msg: "Computing reputation (LLM + web fetch + validator consensus, ~1–4 min on Bradbury)…",
       });
       const hash = await requestScore(account);
       await waitForReceipt(account, hash);
@@ -138,7 +142,7 @@ export default function Oracle() {
             Reputation Oracle
           </h1>
           <p className="text-zinc-400 leading-relaxed max-w-xl">
-            Trustless on chain dev reputation. Combine your wallet with any of GitHub or X  validators
+            Trustless on-chain dev reputation. Combine your wallet with any of GitHub or X — validators
             running diverse LLMs reach consensus on a 0–100 score.
           </p>
           <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
@@ -146,17 +150,17 @@ export default function Oracle() {
               className="font-mono hover:text-zinc-300 transition"
               target="_blank"
               rel="noreferrer"
-              href={`https://explorer-bradbury.genlayer.com/address/${CONTRACT_ADDRESS}`}
+              href={`${EXPLORER_URL}/address/${CONTRACT_ADDRESS}`}
             >
               Contract: {short(CONTRACT_ADDRESS)}
             </a>
             {totalScored !== null && (
-              <span className="text-zinc-600">·</span>
-            )}
-            {totalScored !== null && (
-              <span className="text-zinc-400">
-                <span className="font-semibold text-zinc-200">{totalScored.toLocaleString()}</span> scores computed
-              </span>
+              <>
+                <span className="text-zinc-600">·</span>
+                <span className="text-zinc-400">
+                  <span className="font-semibold text-zinc-200">{totalScored.toLocaleString()}</span> scores computed
+                </span>
+              </>
             )}
           </div>
         </header>
@@ -167,8 +171,9 @@ export default function Oracle() {
               <div>
                 <h2 className="font-semibold">Connect MetaMask to begin</h2>
                 <p className="text-sm text-zinc-400 mt-1">
-                  GenLayer requires the MetaMask Snap to sign transactions, so other wallets
-                  (Rabby, Coinbase, Trust, OKX, Phantom, Brave) are not supported.
+                  Bradbury uses standard EVM signing — no GenLayer Snap install required.
+                  Need testnet GEN? Get some from the{" "}
+                  <a className="underline" target="_blank" rel="noreferrer" href={FAUCET_URL}>faucet</a>.
                 </p>
               </div>
               <button
@@ -223,7 +228,6 @@ export default function Oracle() {
               >
                 {myScore?.exists ? "Recompute my score" : "Compute my score"}
               </button>
-
               {myScore?.exists && <ScoreCard s={myScore} />}
             </div>
           </Card>
@@ -262,13 +266,15 @@ export default function Oracle() {
             <a className="hover:text-zinc-400" href="https://genlayer.com">GenLayer</a>
             {" · "}
             <a className="hover:text-zinc-400" href="https://github.com/rivaleuc/Reputation-Oracle">Source</a>
+            {" · "}
+            <a className="hover:text-zinc-400" target="_blank" rel="noreferrer" href={FAUCET_URL}>Faucet</a>
           </div>
           <div className="font-mono">
             <a
               className="hover:text-zinc-400"
               target="_blank"
               rel="noreferrer"
-              href={`https://explorer-bradbury.genlayer.com/address/${CONTRACT_ADDRESS}`}
+              href={`${EXPLORER_URL}/address/${CONTRACT_ADDRESS}`}
             >
               {short(CONTRACT_ADDRESS)}
             </a>
@@ -352,7 +358,6 @@ function ScoreCard({ s }: { s: Score }) {
     v >= 50 ? "text-amber-400 from-amber-400/20" :
     "text-orange-400 from-orange-400/20";
   const sources = (s.sources_used ?? "").split(",").filter(Boolean);
-
   return (
     <div className="relative overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-6 space-y-3">
       <div className={`absolute -top-20 -right-10 h-40 w-40 rounded-full blur-3xl bg-gradient-to-br ${tone}`} />
@@ -360,27 +365,20 @@ function ScoreCard({ s }: { s: Score }) {
         <ScoreRing value={v} />
         <div className="flex-1 min-w-0">
           <div className="text-xs uppercase tracking-wider text-zinc-500">Reputation</div>
-          <div className={`text-6xl font-bold tabular-nums leading-none ${tone.split(" ")[0]}`}>
-            {v}
-          </div>
+          <div className={`text-6xl font-bold tabular-nums leading-none ${tone.split(" ")[0]}`}>{v}</div>
           <div className="text-xs text-zinc-500 mt-1">/ 100</div>
         </div>
       </div>
       {sources.length > 0 && (
         <div className="relative flex flex-wrap gap-1.5">
           {sources.map((src) => (
-            <span
-              key={src}
-              className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full border border-zinc-700 text-zinc-400"
-            >
+            <span key={src} className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full border border-zinc-700 text-zinc-400">
               {src.replace("_", " ")}
             </span>
           ))}
         </div>
       )}
-      {s.reasoning && (
-        <p className="relative text-sm text-zinc-300 leading-relaxed">{s.reasoning}</p>
-      )}
+      {s.reasoning && <p className="relative text-sm text-zinc-300 leading-relaxed">{s.reasoning}</p>}
     </div>
   );
 }
@@ -389,24 +387,13 @@ function ScoreRing({ value }: { value: number }) {
   const r = 28;
   const c = 2 * Math.PI * r;
   const offset = c - (value / 100) * c;
-  const stroke =
-    value >= 75 ? "#34d399" : value >= 50 ? "#fbbf24" : "#fb923c";
+  const stroke = value >= 75 ? "#34d399" : value >= 50 ? "#fbbf24" : "#fb923c";
   return (
     <svg width="72" height="72" viewBox="0 0 72 72" className="shrink-0">
       <circle cx="36" cy="36" r={r} stroke="#27272a" strokeWidth="6" fill="none" />
-      <circle
-        cx="36"
-        cy="36"
-        r={r}
-        stroke={stroke}
-        strokeWidth="6"
-        fill="none"
-        strokeLinecap="round"
-        strokeDasharray={c}
-        strokeDashoffset={offset}
-        transform="rotate(-90 36 36)"
-        style={{ transition: "stroke-dashoffset 0.8s ease-out" }}
-      />
+      <circle cx="36" cy="36" r={r} stroke={stroke} strokeWidth="6" fill="none" strokeLinecap="round"
+        strokeDasharray={c} strokeDashoffset={offset} transform="rotate(-90 36 36)"
+        style={{ transition: "stroke-dashoffset 0.8s ease-out" }} />
     </svg>
   );
 }
