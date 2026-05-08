@@ -30,7 +30,6 @@ export default function Oracle() {
   const [totalScored, setTotalScored] = useState<number | null>(null);
 
   const [githubInput, setGithubInput] = useState("");
-  const [twitterInput, setTwitterInput] = useState("");
 
   const [searchInput, setSearchInput] = useState("");
   const [searchResult, setSearchResult] = useState<Score | null>(null);
@@ -58,7 +57,6 @@ export default function Oracle() {
           const id = await readMyIdentity(account);
           setIdentity(id);
           if (id.github_handle) setGithubInput(id.github_handle);
-          if (id.twitter_handle) setTwitterInput(id.twitter_handle);
           if (id.linked) {
             const s = await readMyScore(account).catch(() => null);
             if (s) setMyScore(s);
@@ -72,26 +70,21 @@ export default function Oracle() {
     })();
   }, [account]);
 
-  const canScore =
-    identity?.linked || githubInput.trim().length > 0 || twitterInput.trim().length > 0;
+  const canScore = (identity?.github_handle ?? "").length > 0 || githubInput.trim().length > 0;
 
   const handleScore = async () => {
     if (!account) return;
     const gh = githubInput.trim().replace(/^@/, "");
-    const tw = twitterInput.trim().replace(/^@/, "");
-    if (!gh && !tw) {
-      setStatus({ kind: "error", msg: "Provide at least one social handle (GitHub or Twitter)." });
+    if (!gh) {
+      setStatus({ kind: "error", msg: "GitHub handle is required." });
       return;
     }
     try {
-      const needsLink =
-        !identity?.linked ||
-        identity.github_handle !== gh ||
-        identity.twitter_handle !== tw;
+      const needsLink = !identity?.linked || identity.github_handle !== gh;
 
       if (needsLink) {
-        setStatus({ kind: "busy", msg: "Linking socials to your wallet…" });
-        const linkHash = await linkSocials(account, gh, tw);
+        setStatus({ kind: "busy", msg: "Linking GitHub handle to your wallet…" });
+        const linkHash = await linkSocials(account, gh, "");
         await waitForReceipt(account, linkHash);
       }
 
@@ -142,8 +135,8 @@ export default function Oracle() {
             Reputation Oracle
           </h1>
           <p className="text-zinc-400 leading-relaxed max-w-xl">
-            Trustless on-chain dev reputation. Combine your wallet with any of GitHub or X — validators
-            running diverse LLMs reach consensus on a 0–100 score.
+            Trustless on-chain dev reputation. Link your GitHub to your wallet — validators running
+            diverse LLMs fetch your public GitHub activity and reach consensus on a 0–100 score.
           </p>
           <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
             <a
@@ -202,24 +195,17 @@ export default function Oracle() {
         {account && (
           <Card title="Your reputation">
             <div className="space-y-5">
-              <div className="grid sm:grid-cols-2 gap-4">
-                <Field
-                  label="GitHub handle"
-                  prefix="github.com/"
-                  placeholder="rivaleuc"
-                  value={githubInput}
-                  onChange={setGithubInput}
-                />
-                <Field
-                  label="X / Twitter handle"
-                  prefix="@"
-                  placeholder="vitalikbuterin"
-                  value={twitterInput}
-                  onChange={setTwitterInput}
-                />
-              </div>
+              <Field
+                label="GitHub handle"
+                prefix="github.com/"
+                placeholder="rivaleuc"
+                value={githubInput}
+                onChange={setGithubInput}
+              />
               <p className="text-xs text-zinc-500 -mt-2">
-                At least one handle is required. Both is best. Wallet is always part of your identity.
+                Validators fetch your public GitHub profile + recent repos and rate them on a 0–100
+                scale. X/Twitter and on-chain history scoring will arrive in V2 once reliable public
+                data sources are integrated.
               </p>
               <button
                 onClick={handleScore}
